@@ -14,7 +14,6 @@ if not os.path.isfile(CONFIG_FILE):
 CONFIG = Config(file(CONFIG_FILE))
 
 app = flask.Flask(__name__)
-app.debug = True
 
 @app.route("/setup.xml")
 def get_setup_file():
