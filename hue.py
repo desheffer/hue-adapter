@@ -6,12 +6,20 @@ from ssdp import SSDP
 from threading import Thread
 import urllib3
 
-CONFIG_FILE = os.path.dirname(os.path.realpath(__file__)) + "/config/default.cfg.local"
-if not os.path.isfile(CONFIG_FILE):
+config = None
+
+config_file_paths = [
+    os.path.dirname(os.path.realpath(__file__)) + "/config/default.cfg.local",
+    "/etc/hue-adapter/default.cfg.local",
+]
+
+for config_file_path in config_file_paths:
+    if os.path.isfile(config_file_path):
+        config = Config(file(config_file_path))
+
+if not config:
     print "Cannot find configuration file"
     exit(1)
-
-CONFIG = Config(file(CONFIG_FILE))
 
 app = flask.Flask(__name__)
 
@@ -25,7 +33,7 @@ def get_setup_file():
           "<major>1</major>\n" + \
           "<minor>0</minor>\n" + \
           "</specVersion>\n" + \
-          "<URLBase>http://%s:%d/</URLBase>\n" % (CONFIG.web.addr, CONFIG.web.port) + \
+          "<URLBase>http://%s:%d/</URLBase>\n" % (config.web.addr, config.web.port) + \
           "<device>\n" + \
           "<deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType>\n" + \
           "<friendlyName>Philips Hue Emulator</friendlyName>\n" + \
@@ -48,7 +56,7 @@ def get_all_lights(username):
 
     out = {}
 
-    for id, light in CONFIG.lights.iteritems():
+    for id, light in config.lights.iteritems():
         out[id] = {
             "state": {
                 "on": False,
@@ -75,8 +83,8 @@ def get_all_lights(username):
 def get_light(username, id):
     """Get light attributes and state"""
 
-    if id in CONFIG.lights:
-        light = CONFIG.lights[id]
+    if id in config.lights:
+        light = config.lights[id]
     else:
         return "", 3
 
@@ -106,8 +114,8 @@ def get_light(username, id):
 def set_lights_state(username, id):
     """Set light state"""
 
-    if id in CONFIG.lights:
-        light = CONFIG.lights[id]
+    if id in config.lights:
+        light = config.lights[id]
     else:
         return "", 3
 
@@ -138,9 +146,9 @@ def set_lights_state(username, id):
     return flask.Response(json.dumps(out), mimetype="text/json")
 
 if __name__ == "__main__":
-    ssdp = SSDP(CONFIG.web.addr, CONFIG.web.port)
+    ssdp = SSDP(config.web.addr, config.web.port)
     ssdp_thread = Thread(target=ssdp.run)
     ssdp_thread.setDaemon(True)
     ssdp_thread.start()
 
-    app.run(host=CONFIG.web.addr, port=CONFIG.web.port)
+    app.run(host=config.web.addr, port=config.web.port)
