@@ -55,3 +55,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# All local config files
+*.local
